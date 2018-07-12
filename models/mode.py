@@ -5,8 +5,8 @@ import json
 from sklearn.metrics import accuracy_score, log_loss
 
 def trainMode():
-   X_train = np.load('/data2/nathan/embryo/train/feat.npy')
-   Y_train = np.load('/data2/nathan/embryo/train/label.npy')
+   X_train = np.load('/data2/nathan/embryo/train/featRaw.npy')
+   Y_train = np.load('/data2/nathan/embryo/train/labelRaw.npy')
 
    frameCount = {}
    for i in range(len(X_train)):
@@ -19,24 +19,28 @@ def trainMode():
       val, counts = np.unique(v, return_counts=True)
       frameMode[k] = val[np.argmax(counts)]
 
-   X_test = np.load('/data2/nathan/embryo/test/feat.npy')
-   Y_test = np.load('/data2/nathan/embryo/test/label.npy')
+   X_test = np.load('/data2/nathan/embryo/val/featRaw.npy')
+   Y_test = np.load('/data2/nathan/embryo/val/labelRaw.npy')
 
    pred = []
    predHot = []
    for exm in X_test:
       frame = round(exm[1], 1)
-      hot = [0 for i in range(7)]
+      hot = [0 for i in range(6)]
       if frame in frameMode:
          hot[frameMode[frame]] = 1
          pred.append(frameMode[frame])
          predHot.append(hot)
       else:
          time = frame + 0.1
-         while(time not in frameMode):
+         while(time not in frameMode and time <= 70.0):
             time = time + 0.1
-         hot[frameMode[time]] = 1
-         pred.append(frameMode[time])
+         if time not in frameMode:
+            hot[-1] = 1
+            pred.append(6)
+         else:
+            hot[frameMode[time]] = 1
+            pred.append(frameMode[time])
          predHot.append(hot)
 
    Y_testi = []
@@ -46,6 +50,8 @@ def trainMode():
    Y_testi = np.asarray(Y_testi)
    pred = np.asarray(pred)
 
+   np.save(open('modePred.npy', 'wb'), Y_testi == pred)
+
    print(accuracy_score(Y_testi, pred))
    print(log_loss(Y_testi, predHot))
 
@@ -53,7 +59,7 @@ def trainMode():
    predHot = []
    for exm in X_train:
       frame = round(exm[1], 1)
-      hot = [0 for i in range(7)]
+      hot = [0 for i in range(6)]
       if frame in frameMode:
          hot[frameMode[frame]] = 1
          pred.append(frameMode[frame])

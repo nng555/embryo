@@ -11,15 +11,16 @@ from PIL import Image, ImageFilter
 def splitFrames():
 
    # load in csv and retrieve header indices
-   reader = csv.reader(codecs.open("../embryoLabels.csv", "r", encoding="utf-8-sig"))
+   reader = csv.reader(open("/data2/nathan/embryo/filteredLabels.csv", "rU"), delimiter='\t')
    header = reader.next()
+   print(header)
    df = [row for row in reader]
    indict = {}
    for i in range(len(header)):
       indict[header[i]] = i
 
    # set index variables
-   pind = indict['SlideID']
+   pind = 0
    wind = indict['Well']
    tpnfInd = indict['tPNf']
    thbInd = indict['tHB']
@@ -46,6 +47,8 @@ def splitFrames():
       print(f)
       wells = [int(well) for well in f.split('_wells_')[1].split('_')[:-1]]
       for i in range(len(wells)):
+         if wells[i] not in pdict[slide]:
+            continue
          if (slide, wells[i]) in loaded:
             continue
          loaded[slide, wells[i]] = 1
@@ -53,11 +56,7 @@ def splitFrames():
          Y = []
          data = pdict[slide][wells[i]]
 
-         if all(time == '' for time in data[tpnfInd:thbInd+1][:5]):
-            continue
-         times = [0] + [float(time) if time != '' else -1 for time in data[tpnfInd:thbInd+1][:5]]
-         if any(time < 0 for time in times):
-            continue
+         times = [0] + [float(time) if time != '' else -1 for time in data[tpnfInd:thbInd+1]]
 
          cap = cv2.VideoCapture('/data2/nathan/embryo/videos/' + f)
          lastFrame = 0
@@ -91,19 +90,14 @@ def splitFrames():
 
             hr = 100*dig1 + dig2*10 + dig3 + dig4/10.0
 
-            if hr > 70.0:
-               continue
-
             timeRes = [0 for j in range(len(times))]
-            for j in range(len(times) - 1):
-               if times[j] != -1:
-                  if times[j] <= hr and hr < times[j+1]:
-                     timeRes[j] = 1
-                     break
-            if hr >= times[-1] and times[-1] != -1:
-               timeRes[-1] = 1
-
-            if 1 not in timeRes:
+            last = -1
+            for j in range(len(times)):
+               if times[j] <= hr and times[j] != -1:
+                  last = j
+            if last != -1:
+               timeRes[last] = 1
+            else:
                continue
 
             frame = cv2.resize(frame, (224, 224))
@@ -112,13 +106,15 @@ def splitFrames():
 
          X = np.asarray(X)
          Y = np.asarray(Y)
-         if ('patient' + str(slide) + 'feat.npy') in  os.listdir('/data2/nathan/embryo/data'):
+         '''
+         if ('patient' + str(slide) + 'labelRaw.npy') in  os.listdir('/data2/nathan/embryo/data'):
             X_imm = np.load('/data2/nathan/embryo/data/patient' + str(slide) + 'feat.npy')
-            Y_imm = np.load('/data2/nathan/embryo/data/patient' + str(slide) + 'label.npy')
+            Y_imm = np.load('/data2/nathan/embryo/data/patient' + str(slide) + 'labelRaw.npy')
             X = np.vstack([X_imm, X])
             Y = np.vstack([Y_imm, Y])
-         np.save(open('/data2/nathan/embryo/data/patient' + str(slide) + 'feat.npy', 'wb'), X)
-         np.save(open('/data2/nathan/embryo/data/patient' + str(slide) + 'label.npy', 'wb'), Y)
+         '''
+         np.save(open('/data2/nathan/embryo/data/patient' + str(slide) + 'well' + str(wells[i]) + 'feat.npy', 'wb'), X)
+         np.save(open('/data2/nathan/embryo/data/patient' + str(slide) + 'well' + str(wells[i]) + 'labelRaw.npy', 'wb'), Y)
 
 if __name__ == "__main__":
    splitFrames()

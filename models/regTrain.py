@@ -4,7 +4,7 @@ import cPickle as pkl
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
-def regTrain(size, l2):
+def regTrain(l2):
 
    X_train = np.load('/data2/nathan/embryo/train/featFlat.npy')
    Y_train = np.load('/data2/nathan/embryo/train/labelIndex.npy')
@@ -24,9 +24,7 @@ def regTrain(size, l2):
 
 if __name__ == '__main__':
    parser = argparse.ArgumentParser()
-   parser.add_argument('-s', action='store', dest='size', type=int,
-         help='the size of the training images')
    parser.add_argument('-l', action='store', dest='l2', type=float,
          help='the l2 loss constant')
    args = vars(parser.parse_args())
-   regTrain(args['size'], args['l2'])
+   regTrain(args['l2'])
